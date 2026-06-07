@@ -1,5 +1,21 @@
 import { useState } from 'react';
-import { Phone, MessageSquare, Bell, Shield, Heart, Flame, Users, Radio, Check } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Phone,
+  MessageSquare,
+  Bell,
+  Shield,
+  Heart,
+  Flame,
+  Users,
+  Radio,
+  Check,
+  MapPin,
+  Clock,
+  ChevronRight,
+  FileText,
+} from 'lucide-react';
+import { useAppStore } from '@/store';
 import { mockContacts } from '@/data/mockData';
 import type { Department } from '@/types';
 
@@ -11,26 +27,58 @@ const deptConfig: Record<Department, { label: string; icon: typeof Shield; color
   operation: { label: '运营', icon: Radio, color: 'text-purple-600', bgColor: 'bg-purple-100' },
 };
 
+const typeLabels: Record<string, string> = {
+  crowd: '客流拥挤',
+  injury: '突发伤病',
+  dispute: '纠纷',
+  lost_item: '物品遗失',
+  suspicious: '可疑人员',
+  other: '其他',
+};
+
 export default function Contact() {
+  const navigate = useNavigate();
+  const { events, eventContactLogs } = useAppStore();
   const [selectedDept, setSelectedDept] = useState<Department | 'all'>('all');
   const [notificationStatus, setNotificationStatus] = useState<string | null>(null);
 
   const filteredContacts = selectedDept === 'all'
     ? mockContacts
-    : mockContacts.filter(c => c.department === selectedDept);
+    : mockContacts.filter((c) => c.department === selectedDept);
 
   const deptCounts = {
-    police: mockContacts.filter(c => c.department === 'police').length,
-    medical: mockContacts.filter(c => c.department === 'medical').length,
-    fire: mockContacts.filter(c => c.department === 'fire').length,
-    station: mockContacts.filter(c => c.department === 'station').length,
-    operation: mockContacts.filter(c => c.department === 'operation').length,
+    police: mockContacts.filter((c) => c.department === 'police').length,
+    medical: mockContacts.filter((c) => c.department === 'medical').length,
+    fire: mockContacts.filter((c) => c.department === 'fire').length,
+    station: mockContacts.filter((c) => c.department === 'station').length,
+    operation: mockContacts.filter((c) => c.department === 'operation').length,
   };
 
   const handleQuickNotify = (dept: Department) => {
     setNotificationStatus(dept);
     setTimeout(() => setNotificationStatus(null), 2000);
   };
+
+  const getEventInfo = (eventId: string) => {
+    return events.find((e) => e.id === eventId);
+  };
+
+  const handleGoToEvent = (eventId: string) => {
+    navigate('/event-handling', { state: { highlightEventId: eventId } });
+  };
+
+  const formatTime = (iso: string) => {
+    return new Date(iso).toLocaleString('zh-CN', {
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const sortedLogs = [...eventContactLogs].sort(
+    (a, b) => new Date(b.notifyTime).getTime() - new Date(a.notifyTime).getTime()
+  );
 
   return (
     <div className="space-y-6">
@@ -208,31 +256,75 @@ export default function Contact() {
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border border-slate-200">
-            <div className="p-4 border-b border-slate-200">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between">
               <h3 className="font-semibold text-slate-800">通知记录</h3>
+              <span className="text-xs text-slate-500">{sortedLogs.length} 条记录</span>
             </div>
-            <div className="p-4 space-y-3 max-h-48 overflow-y-auto">
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-blue-500 mt-2"></div>
-                <div>
-                  <p className="text-sm text-slate-700">通知驻站警长 - 张警官</p>
-                  <p className="text-xs text-slate-500">5分钟前 · 可疑物品事件</p>
+            <div className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
+              {sortedLogs.length === 0 ? (
+                <div className="p-6 text-center text-slate-500">
+                  <Bell size={36} className="mx-auto mb-2 text-slate-300" />
+                  <p className="text-sm">暂无通知记录</p>
                 </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-green-500 mt-2"></div>
-                <div>
-                  <p className="text-sm text-slate-700">通知急救医生 - 王医生</p>
-                  <p className="text-xs text-slate-500">20分钟前 · 乘客摔倒受伤</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-2 h-2 rounded-full bg-orange-500 mt-2"></div>
-                <div>
-                  <p className="text-sm text-slate-700">启动限流广播</p>
-                  <p className="text-xs text-slate-500">45分钟前 · 早高峰客流</p>
-                </div>
-              </div>
+              ) : (
+                sortedLogs.map((log) => {
+                  const event = getEventInfo(log.eventId);
+                  const deptConfigItem = deptConfig[log.department];
+                  const DeptIcon = deptConfigItem?.icon || Users;
+
+                  return (
+                    <div
+                      key={log.id}
+                      className="p-4 hover:bg-slate-50 transition-colors cursor-pointer"
+                      onClick={() => handleGoToEvent(log.eventId)}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className={`w-8 h-8 rounded-lg ${deptConfigItem?.bgColor || 'bg-slate-100'} flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                          <DeptIcon className={deptConfigItem?.color || 'text-slate-600'} size={14} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <p className="text-sm font-medium text-slate-800">
+                                通知 {log.contactName}
+                              </p>
+                              <p className="text-xs text-slate-500 mt-0.5">
+                                {deptConfigItem?.label || log.department} · {log.remark}
+                              </p>
+                            </div>
+                            <ChevronRight size={14} className="text-slate-400 flex-shrink-0 mt-1" />
+                          </div>
+
+                          {event && (
+                            <div className="mt-2 p-2 bg-slate-50 rounded-lg">
+                              <div className="flex items-center gap-2 text-xs text-slate-600">
+                                <FileText size={12} className="text-blue-500" />
+                                <span className="font-medium">{typeLabels[event.type] || event.type}</span>
+                              </div>
+                              <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                                <span className="flex items-center gap-1">
+                                  <MapPin size={10} />
+                                  {event.location}
+                                </span>
+                              </div>
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-slate-400 flex items-center gap-1">
+                              <Clock size={10} />
+                              {formatTime(log.notifyTime)}
+                            </span>
+                            <span className="text-xs text-slate-400">
+                              操作人: {log.operator}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>

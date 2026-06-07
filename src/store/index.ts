@@ -25,6 +25,7 @@ import {
   mockRestrictionMeasures,
   mockBroadcastTemplates,
   mockEventLogs,
+  mockDevices,
 } from '../data/mockData';
 
 interface BroadcastLog {
@@ -61,6 +62,7 @@ interface AppState {
   notifyEventContact: (eventId: string, contactId: string, contactName: string, department: Department, operator: string, remark: string) => void;
   borrowEventMaterial: (eventId: string, materialId: string, materialName: string, quantity: number, operator: string, remark: string) => void;
   setHighlightedDeviceId: (id: string | null) => void;
+  matchDeviceByLocation: (locationName: string) => void;
   updateAlertStatus: (id: string, status: Alert['status']) => void;
   toggleRestrictionMeasure: (id: string) => void;
   updateThreshold: (id: string, yellow: number, red: number) => void;
@@ -217,6 +219,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   borrowEventMaterial: (eventId, materialId, materialName, quantity, operator, remark) =>
     set((state) => {
       const material = state.materials.find((m) => m.id === materialId);
+      const event = state.events.find((e) => e.id === eventId);
       if (!material) return state;
 
       const newQuantity = material.quantity - quantity;
@@ -249,6 +252,8 @@ export const useAppStore = create<AppState>((set, get) => ({
             operator,
             timestamp: new Date().toISOString(),
             remark: `事件领用：${remark}`,
+            eventId,
+            eventType: event?.type,
           },
           ...state.materialLogs,
         ],
@@ -269,6 +274,15 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   setHighlightedDeviceId: (id) =>
     set({ highlightedDeviceId: id }),
+
+  matchDeviceByLocation: (locationName) =>
+    set(() => {
+      if (!locationName) return { highlightedDeviceId: null };
+      const matchedDevice = mockDevices.find(
+        (d) => d.name.includes(locationName) || locationName.includes(d.name)
+      );
+      return { highlightedDeviceId: matchedDevice?.id || null };
+    }),
 
   updateAlertStatus: (id, status) =>
     set((state) => ({

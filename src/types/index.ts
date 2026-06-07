@@ -112,6 +112,8 @@ export interface MaterialLog {
   operator: string;
   timestamp: string;
   remark: string;
+  eventId?: string;
+  eventType?: string;
 }
 
 export type Department = 'police' | 'medical' | 'fire' | 'station' | 'operation';

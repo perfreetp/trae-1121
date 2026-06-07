@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Camera, DoorOpen, Ban, Shield, ArrowUpDown, Info, Filter } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Camera, DoorOpen, Ban, Shield, ArrowUpDown, Info, Filter, Plus, AlertTriangle } from 'lucide-react';
 import { mockDevices } from '@/data/mockData';
 import { useAppStore } from '@/store';
 import type { Device, DeviceType } from '@/types';
@@ -33,6 +34,7 @@ const statusLabels = {
 };
 
 export default function StationMap() {
+  const navigate = useNavigate();
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [filterType, setFilterType] = useState<DeviceType | 'all'>('all');
   const { highlightedDeviceId, setHighlightedDeviceId } = useAppStore();
@@ -50,6 +52,17 @@ export default function StationMap() {
   const handleDeviceClick = (device: Device) => {
     setSelectedDevice(device);
     setHighlightedDeviceId(null);
+  };
+
+  const handleRegisterEvent = (device: Device) => {
+    navigate('/event-handling', {
+      state: {
+        newEventWithDevice: {
+          deviceId: device.id,
+          location: device.name,
+        },
+      },
+    });
   };
 
   const filteredDevices = filterType === 'all'
@@ -264,9 +277,18 @@ export default function StationMap() {
                     </span>
                   </div>
                 </div>
-                <button className="w-full mt-3 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors">
-                  查看详情
-                </button>
+                <div className="flex gap-2 mt-3">
+                  <button
+                    onClick={() => handleRegisterEvent(selectedDevice)}
+                    className="flex-1 py-2 bg-orange-600 text-white rounded text-sm hover:bg-orange-700 transition-colors flex items-center justify-center gap-1"
+                  >
+                    <AlertTriangle size={14} />
+                    登记事件
+                  </button>
+                  <button className="flex-1 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors">
+                    查看详情
+                  </button>
+                </div>
               </div>
             )}
           </div>

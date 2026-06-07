@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Package, Box, AlertCircle, ArrowRightLeft, Plus, X, Eye, ArrowUpCircle, ArrowDownCircle, Clock, User } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Package, Box, AlertCircle, ArrowRightLeft, Plus, X, Eye, ArrowUpCircle, ArrowDownCircle, Clock, User, FileText } from 'lucide-react';
 import { useAppStore } from '@/store';
 import type { Material } from '@/types';
 
@@ -36,8 +37,18 @@ const logTypeColors: Record<string, string> = {
   maintain: 'bg-red-100 text-red-700',
 };
 
+const typeLabels: Record<string, string> = {
+  crowd: '客流拥挤',
+  injury: '突发伤病',
+  dispute: '纠纷',
+  lost_item: '物品遗失',
+  suspicious: '可疑人员',
+  other: '其他',
+};
+
 export default function Materials() {
-  const { materials, materialLogs, addMaterial, updateMaterial, borrowMaterial, returnMaterial, dispatchMaterial, addMaterialLog } = useAppStore();
+  const navigate = useNavigate();
+  const { materials, materialLogs, events, addMaterial, updateMaterial, borrowMaterial, returnMaterial, dispatchMaterial, addMaterialLog } = useAppStore();
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState<Material | null>(null);
@@ -310,27 +321,42 @@ export default function Materials() {
             {materialLogs.length === 0 ? (
               <p className="text-center text-slate-400 text-sm py-8">暂无调度记录</p>
             ) : (
-              materialLogs.slice(0, 20).map((log) => (
-                <div key={log.id} className="p-3 bg-slate-50 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className={`px-2 py-0.5 rounded text-xs font-medium ${logTypeColors[log.type]}`}>
-                      {logTypeLabels[log.type]}
-                    </span>
-                    <span className="text-sm font-medium text-slate-800 truncate">
-                      {getMaterialName(log.materialId)}
-                    </span>
-                    <span className="text-xs text-slate-500">x{log.quantity}</span>
+              materialLogs.slice(0, 20).map((log) => {
+                const event = log.eventId ? events.find((e) => e.id === log.eventId) : null;
+                return (
+                  <div key={log.id} className="p-3 bg-slate-50 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className={`px-2 py-0.5 rounded text-xs font-medium ${logTypeColors[log.type]}`}>
+                        {logTypeLabels[log.type]}
+                      </span>
+                      <span className="text-sm font-medium text-slate-800 truncate">
+                        {getMaterialName(log.materialId)}
+                      </span>
+                      <span className="text-xs text-slate-500">x{log.quantity}</span>
+                    </div>
+                    <p className="text-xs text-slate-600">{log.remark}</p>
+                    {event && (
+                      <div
+                        className="mt-2 p-2 bg-white rounded border border-slate-200 cursor-pointer hover:border-blue-300 transition-colors"
+                        onClick={() => navigate('/event-handling', { state: { highlightEventId: event.id } })}
+                      >
+                        <div className="flex items-center gap-1 text-xs text-blue-600">
+                          <FileText size={10} />
+                          <span className="font-medium">{typeLabels[event.type] || event.type}</span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5 truncate">{event.location}</p>
+                      </div>
+                    )}
+                    <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
+                      <User size={10} />
+                      {log.operator}
+                      <span>·</span>
+                      <Clock size={10} />
+                      {formatTime(log.timestamp)}
+                    </p>
                   </div>
-                  <p className="text-xs text-slate-600">{log.remark}</p>
-                  <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-                    <User size={10} />
-                    {log.operator}
-                    <span>·</span>
-                    <Clock size={10} />
-                    {formatTime(log.timestamp)}
-                  </p>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

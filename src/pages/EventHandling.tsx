@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   AlertCircle,
   Clock,
@@ -19,10 +19,11 @@ import {
   FileText,
   Lightbulb,
   ArrowRight,
+  FileBarChart,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
-import { mockDevices, mockContacts, mockMaterials } from '@/data/mockData';
-import { useNavigate } from 'react-router-dom';
+import { mockDevices, mockContacts } from '@/data/mockData';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { Event, EventType, EventLevel, EventStatus, Department } from '@/types';
 
 const eventTypeLabels: Record<EventType, string> = {
@@ -102,11 +103,13 @@ const departmentColors: Record<Department, string> = {
 
 export default function EventHandling() {
   const navigate = useNavigate();
+  const location = useLocation();
   const {
     events,
     eventLogs,
     eventContactLogs,
     eventMaterialLogs,
+    materials,
     addEvent,
     updateEventStatus,
     completeEvent,
@@ -114,7 +117,29 @@ export default function EventHandling() {
     notifyEventContact,
     borrowEventMaterial,
     setHighlightedDeviceId,
+    matchDeviceByLocation,
   } = useAppStore();
+
+  useEffect(() => {
+    const state = location.state as any;
+    if (state?.newEventWithDevice) {
+      setNewEventForm({
+        type: 'crowd',
+        level: 'medium',
+        location: state.newEventWithDevice.location,
+        deviceId: state.newEventWithDevice.deviceId,
+        description: '',
+        reporter: '',
+        status: 'pending',
+      });
+      setShowAddModal(true);
+      navigate('.', { replace: true, state: {} });
+    }
+    if (state?.highlightEventId) {
+      setExpandedEvent(state.highlightEventId);
+      navigate('.', { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
@@ -194,6 +219,7 @@ export default function EventHandling() {
     completeEvent(eventId, completeForm.result, completeForm.reviewSuggestion, '值班员');
     setShowCompleteModal(null);
     setCompleteForm({ result: '', reviewSuggestion: '' });
+    navigate('/review', { state: { highlightEventId: eventId } });
   };
 
   const handleNotify = (eventId: string) => {
@@ -207,8 +233,12 @@ export default function EventHandling() {
 
   const handleBorrowMaterial = (eventId: string) => {
     if (!materialForm.materialId) return;
-    const material = mockMaterials.find((m) => m.id === materialForm.materialId);
+    const material = materials.find((m) => m.id === materialForm.materialId);
     if (!material) return;
+    if (materialForm.quantity > material.quantity) {
+      alert(`库存不足！当前可用数量：${material.quantity}`);
+      return;
+    }
     borrowEventMaterial(eventId, material.id, material.name, materialForm.quantity, '值班员', materialForm.remark);
     setShowMaterialModal(null);
     setMaterialForm({ materialId: '', quantity: 1, remark: '' });
@@ -245,7 +275,10 @@ export default function EventHandling() {
   };
 
   const availableContacts = mockContacts.filter((c) => c.department === notifyForm.department);
-  const availableMaterials = mockMaterials.filter((m) => m.quantity > 0 && m.status !== 'maintenance');
+  const availableMaterials = materials.filter((m) => m.quantity > 0 && m.status !== 'maintenance');
+
+  const selectedMaterial = materials.find((m) => m.id === materialForm.materialId);
+  const maxQuantity = selectedMaterial?.quantity || 1;
 
   return (
     <div className="space-y-6">
@@ -390,6 +423,57 @@ export default function EventHandling() {
               {expandedEvent === event.id && (
                 <div className="bg-slate-50 px-4 pb-4">
                   <div className="bg-white rounded-lg border border-slate-200">
+                    <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                      <div className="flex items-center gap-4 text-sm">
+                        <span
+                          className="flex items-center gap-1 text-blue-600 hover:text-blue-700 cursor-pointer"
+                          onClick={() => {
+                            if (event.deviceId) {
+                              handleJumpToMap(event.deviceId);
+                            } else {
+                              matchDeviceByLocation(event.location);
+                              handleJumpToMap();
+                            }
+                          }}
+                        >
+                          <MapPin size={14} />
+                          {event.location}
+                        </span>
+                        <span className="flex items-center gap-1 text-slate-500">
+                          <User size={14} />
+                          {event.reporter}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {event.status === 'completed' && (
+                          <button
+                            onClick={() => navigate('/review', { state: { highlightEventId: event.id } })}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs bg-purple-50 text-purple-600 rounded hover:bg-purple-100 transition-colors"
+                          >
+                            <FileBarChart size={12} />
+                            查看复盘
+                          </button>
+                        )}
+                        {event.status === 'pending' && (
+                          <button
+                            onClick={() => updateEventStatus(event.id, 'processing', '值班员')}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+                          >
+                            <PlayCircle size={12} />
+                            开始处理
+                          </button>
+                        )}
+                        {event.status === 'processing' && (
+                          <button
+                            onClick={() => setShowCompleteModal(event.id)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
+                          >
+                            <CheckCircle size={12} />
+                            完成处置
+                          </button>
+                        )}
+                      </div>
+                    </div>
                     <div className="border-b border-slate-200 px-4 py-2 flex gap-4">
                       <button
                         onClick={() => setActiveTab('timeline')}
@@ -872,12 +956,23 @@ export default function EventHandling() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">数量</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  数量
+                  {selectedMaterial && (
+                    <span className="text-xs text-slate-500 ml-2">
+                      (可用库存: {selectedMaterial.quantity})
+                    </span>
+                  )}
+                </label>
                 <input
                   type="number"
                   value={materialForm.quantity}
-                  onChange={(e) => setMaterialForm({ ...materialForm, quantity: Number(e.target.value) })}
+                  onChange={(e) => {
+                    const val = Math.min(Number(e.target.value), maxQuantity);
+                    setMaterialForm({ ...materialForm, quantity: val });
+                  }}
                   min={1}
+                  max={maxQuantity}
                   className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
