@@ -7,6 +7,7 @@ export interface Event {
   type: EventType;
   level: EventLevel;
   location: string;
+  deviceId?: string;
   description: string;
   status: EventStatus;
   reporter: string;
@@ -14,15 +15,52 @@ export interface Event {
   updatedAt: string;
   images?: string[];
   assignee?: string;
+  result?: string;
+  reviewSuggestion?: string;
 }
+
+export type EventLogAction = 
+  | 'create' 
+  | 'update_status' 
+  | 'add_progress' 
+  | 'add_measure' 
+  | 'add_remark'
+  | 'notify_contact'
+  | 'borrow_material'
+  | 'complete';
 
 export interface EventLog {
   id: string;
   eventId: string;
-  action: string;
+  action: EventLogAction;
   operator: string;
   timestamp: string;
   remark: string;
+  detail?: string;
+}
+
+export interface EventContactLog {
+  id: string;
+  eventId: string;
+  contactId: string;
+  contactName: string;
+  department: Department;
+  notifyTime: string;
+  operator: string;
+  remark: string;
+}
+
+export interface EventMaterialLog {
+  id: string;
+  eventId: string;
+  materialId: string;
+  materialName: string;
+  quantity: number;
+  borrowTime: string;
+  operator: string;
+  remark: string;
+  returned?: boolean;
+  returnTime?: string;
 }
 
 export interface PassengerData {
@@ -54,7 +92,7 @@ export interface Device {
   y: number;
 }
 
-export type MaterialCategory = 'fence' | 'stretcher' | 'first_aid' | 'megaphone' | 'other';
+export type MaterialCategory = 'fence' | 'stretcher' | 'firstAid' | 'megaphone' | 'other';
 export type MaterialStatus = 'available' | 'in_use' | 'maintenance';
 
 export interface Material {

@@ -13,6 +13,7 @@ import type {
   PatrolShift,
   PatrolRecord,
   ReviewItem,
+  EventLog,
 } from '../types';
 
 const now = new Date();
@@ -110,8 +111,8 @@ export const mockDevices: Device[] = [
 export const mockMaterials: Material[] = [
   { id: 'm1', name: '伸缩围栏', category: 'fence', quantity: 20, location: '物资室A', status: 'available' },
   { id: 'm2', name: '折叠担架', category: 'stretcher', quantity: 3, location: '急救站', status: 'available' },
-  { id: 'm3', name: '急救包A型', category: 'first_aid', quantity: 15, location: '各服务台', status: 'available' },
-  { id: 'm4', name: '急救包B型', category: 'first_aid', quantity: 8, location: '急救站', status: 'in_use' },
+  { id: 'm3', name: '急救包A型', category: 'firstAid', quantity: 15, location: '各服务台', status: 'available' },
+  { id: 'm4', name: '急救包B型', category: 'firstAid', quantity: 8, location: '急救站', status: 'in_use' },
   { id: 'm5', name: '大功率扩音器', category: 'megaphone', quantity: 6, location: '物资室A', status: 'available' },
   { id: 'm6', name: '手持扩音器', category: 'megaphone', quantity: 12, location: '各岗位', status: 'available' },
   { id: 'm7', name: '轮椅', category: 'other', quantity: 2, location: '服务台', status: 'available' },
@@ -352,4 +353,70 @@ export const monthlyEventTrend = [
   { month: '4月', count: 25 },
   { month: '5月', count: 28 },
   { month: '6月', count: 34 },
+];
+
+export const mockEventLogs: EventLog[] = [
+  {
+    id: 'el1',
+    eventId: '1',
+    action: 'create',
+    operator: '张三',
+    timestamp: new Date(now.getTime() - 30 * 60000).toISOString(),
+    remark: '事件登记',
+    detail: '早高峰期间A出入口出现客流拥堵，排队超过20米',
+  },
+  {
+    id: 'el2',
+    eventId: '1',
+    action: 'update_status',
+    operator: '李四',
+    timestamp: new Date(now.getTime() - 25 * 60000).toISOString(),
+    remark: '状态变更为：处理中',
+    detail: '安排2名站务人员到A出入口引导客流',
+  },
+  {
+    id: 'el3',
+    eventId: '1',
+    action: 'add_progress',
+    operator: '李四',
+    timestamp: new Date(now.getTime() - 20 * 60000).toISOString(),
+    remark: '现场进展',
+    detail: 'A出入口客流开始缓慢疏导，已设置临时引导标识',
+  },
+  {
+    id: 'el4',
+    eventId: '1',
+    action: 'add_measure',
+    operator: '李四',
+    timestamp: new Date(now.getTime() - 15 * 60000).toISOString(),
+    remark: '处置措施',
+    detail: '启动蛇形围栏限流，联系运营中心建议后续列车增加停靠时间',
+  },
+  {
+    id: 'el5',
+    eventId: '4',
+    action: 'create',
+    operator: '乘客',
+    timestamp: new Date(now.getTime() - 8 * 60000).toISOString(),
+    remark: '事件登记',
+    detail: '老年乘客在扶梯上摔倒，疑似脚踝受伤',
+  },
+  {
+    id: 'el6',
+    eventId: '4',
+    action: 'update_status',
+    operator: '车站值班员',
+    timestamp: new Date(now.getTime() - 7 * 60000).toISOString(),
+    remark: '状态变更为：处理中',
+    detail: '立即安排急救人员到场',
+  },
+  {
+    id: 'el7',
+    eventId: '4',
+    action: 'notify_contact',
+    operator: '车站值班员',
+    timestamp: new Date(now.getTime() - 6 * 60000).toISOString(),
+    remark: '通知王医生',
+    detail: '老年乘客扶梯摔倒，疑似脚踝受伤，请求到场处置',
+  },
 ];

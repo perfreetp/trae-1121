@@ -37,7 +37,7 @@ const logTypeColors: Record<string, string> = {
 };
 
 export default function Materials() {
-  const { materials, materialLogs, addMaterial, updateMaterial, borrowMaterial, returnMaterial, addMaterialLog } = useAppStore();
+  const { materials, materialLogs, addMaterial, updateMaterial, borrowMaterial, returnMaterial, dispatchMaterial, addMaterialLog } = useAppStore();
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState<Material | null>(null);
@@ -110,15 +110,15 @@ export default function Materials() {
   };
 
   const handleDispatch = () => {
-    if (!showDispatchModal || !dispatchForm.operator) return;
-    addMaterialLog({
-      materialId: showDispatchModal.id,
-      type: 'dispatch',
-      quantity: dispatchForm.quantity,
-      operator: dispatchForm.operator,
-      remark: `从${dispatchForm.fromLocation}调度到${dispatchForm.toLocation}：${dispatchForm.remark}`,
-    });
-    updateMaterial(showDispatchModal.id, { location: dispatchForm.toLocation });
+    if (!showDispatchModal || !dispatchForm.operator || !dispatchForm.toLocation) return;
+    dispatchMaterial(
+      showDispatchModal.id,
+      dispatchForm.fromLocation,
+      dispatchForm.toLocation,
+      dispatchForm.quantity,
+      dispatchForm.operator,
+      dispatchForm.remark
+    );
     setShowDispatchModal(null);
     setDispatchForm({ fromLocation: showDispatchModal.location, toLocation: '', quantity: 1, operator: '', remark: '' });
   };

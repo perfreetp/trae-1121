@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Camera, DoorOpen, Ban, Shield, ArrowUpDown, Info, Filter } from 'lucide-react';
 import { mockDevices } from '@/data/mockData';
+import { useAppStore } from '@/store';
 import type { Device, DeviceType } from '@/types';
 
 const deviceIcons: Record<DeviceType, typeof Camera> = {
@@ -34,6 +35,22 @@ const statusLabels = {
 export default function StationMap() {
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const [filterType, setFilterType] = useState<DeviceType | 'all'>('all');
+  const { highlightedDeviceId, setHighlightedDeviceId } = useAppStore();
+
+  useEffect(() => {
+    if (highlightedDeviceId) {
+      const device = mockDevices.find(d => d.id === highlightedDeviceId);
+      if (device) {
+        setSelectedDevice(device);
+        setFilterType('all');
+      }
+    }
+  }, [highlightedDeviceId]);
+
+  const handleDeviceClick = (device: Device) => {
+    setSelectedDevice(device);
+    setHighlightedDeviceId(null);
+  };
 
   const filteredDevices = filterType === 'all'
     ? mockDevices
@@ -143,23 +160,60 @@ export default function StationMap() {
               <rect x="82" y="82" width="10" height="8" fill="#BFDBFE" stroke="#60A5FA" strokeWidth="0.3" />
               <text x="87" y="87.5" textAnchor="middle" fill="#1E40AF" fontSize="2.5">D口</text>
 
+              <defs>
+                <style>
+                  {`
+                    @keyframes pulse-ring {
+                      0% { r: 3; opacity: 1; }
+                      100% { r: 8; opacity: 0; }
+                    }
+                    .pulse-animation {
+                      animation: pulse-ring 1.5s ease-out infinite;
+                    }
+                  `}
+                </style>
+              </defs>
               {filteredDevices.map((device) => {
                 const Icon = deviceIcons[device.type];
+                const isHighlighted = highlightedDeviceId === device.id;
                 return (
                   <g
                     key={device.id}
                     transform={`translate(${device.x}, ${device.y})`}
                     className="cursor-pointer"
-                    onClick={() => setSelectedDevice(device)}
+                    onClick={() => handleDeviceClick(device)}
                   >
+                    {isHighlighted && (
+                      <>
+                        <circle
+                          r="8"
+                          className="fill-blue-400 pulse-animation"
+                          opacity="0.6"
+                        />
+                        <circle
+                          r="6"
+                          className="fill-blue-400 pulse-animation"
+                          style={{ animationDelay: '0.3s' }}
+                          opacity="0.4"
+                        />
+                      </>
+                    )}
                     <circle
-                      r="4"
-                      className={device.status === 'normal' ? 'fill-green-400' : device.status === 'warning' ? 'fill-yellow-400' : 'fill-red-400'}
-                      opacity="0.3"
+                      r={isHighlighted ? "5" : "4"}
+                      className={
+                        isHighlighted
+                          ? 'fill-blue-500'
+                          : device.status === 'normal' ? 'fill-green-400' : device.status === 'warning' ? 'fill-yellow-400' : 'fill-red-400'
+                      }
+                      opacity={isHighlighted ? "0.5" : "0.3"}
                     />
                     <circle
-                      r="2.5"
-                      className={device.status === 'normal' ? 'fill-green-500' : device.status === 'warning' ? 'fill-yellow-500' : 'fill-red-500'}
+                      r={isHighlighted ? "3.5" : "2.5"}
+                      className={
+                        isHighlighted
+                          ? 'fill-blue-600'
+                          : device.status === 'normal' ? 'fill-green-500' : device.status === 'warning' ? 'fill-yellow-500' : 'fill-red-500'
+                      }
                     />
                   </g>
                 );
@@ -226,13 +280,20 @@ export default function StationMap() {
             {filteredDevices.map((device) => (
               <div
                 key={device.id}
-                onClick={() => setSelectedDevice(device)}
-                className={`p-3 rounded-lg cursor-pointer transition-colors mb-2 ${
-                  selectedDevice?.id === device.id
+                onClick={() => handleDeviceClick(device)}
+                className={`p-3 rounded-lg cursor-pointer transition-colors mb-2 relative ${
+                  highlightedDeviceId === device.id
+                    ? 'bg-blue-50 border-2 border-blue-400 ring-2 ring-blue-200'
+                    : selectedDevice?.id === device.id
                     ? 'bg-blue-50 border border-blue-200'
                     : 'hover:bg-slate-50 border border-transparent'
                 }`}
               >
+                {highlightedDeviceId === device.id && (
+                  <span className="absolute -top-1 -right-1 px-2 py-0.5 bg-blue-500 text-white text-xs rounded-full">
+                    定位中
+                  </span>
+                )}
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded ${
                     device.status === 'normal' ? 'bg-green-100' :
