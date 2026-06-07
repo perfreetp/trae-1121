@@ -108,21 +108,41 @@ export default function Materials() {
 
   const handleBorrow = () => {
     if (!showBorrowModal || !borrowForm.operator) return;
-    borrowMaterial(showBorrowModal.id, borrowForm.quantity, borrowForm.operator, borrowForm.remark);
+    if (borrowForm.quantity <= 0 || borrowForm.quantity > showBorrowModal.quantity) {
+      alert(`领用数量不合法！当前可用数量：${showBorrowModal.quantity}`);
+      return;
+    }
+    const success = borrowMaterial(showBorrowModal.id, borrowForm.quantity, borrowForm.operator, borrowForm.remark);
+    if (!success) {
+      alert('领用失败，请检查库存数量');
+      return;
+    }
     setShowBorrowModal(null);
     setBorrowForm({ quantity: 1, operator: '', remark: '' });
   };
 
   const handleReturn = () => {
     if (!showReturnModal || !returnForm.operator) return;
-    returnMaterial(showReturnModal.id, returnForm.quantity, returnForm.operator, returnForm.remark);
+    if (returnForm.quantity <= 0) {
+      alert('归还数量必须大于0！');
+      return;
+    }
+    const success = returnMaterial(showReturnModal.id, returnForm.quantity, returnForm.operator, returnForm.remark);
+    if (!success) {
+      alert('归还失败');
+      return;
+    }
     setShowReturnModal(null);
     setReturnForm({ quantity: 1, operator: '', remark: '' });
   };
 
   const handleDispatch = () => {
     if (!showDispatchModal || !dispatchForm.operator || !dispatchForm.toLocation) return;
-    dispatchMaterial(
+    if (dispatchForm.quantity <= 0 || dispatchForm.quantity > showDispatchModal.quantity) {
+      alert(`调度数量不合法！当前可用数量：${showDispatchModal.quantity}`);
+      return;
+    }
+    const success = dispatchMaterial(
       showDispatchModal.id,
       dispatchForm.fromLocation,
       dispatchForm.toLocation,
@@ -130,6 +150,10 @@ export default function Materials() {
       dispatchForm.operator,
       dispatchForm.remark
     );
+    if (!success) {
+      alert('调度失败，请检查库存数量');
+      return;
+    }
     setShowDispatchModal(null);
     setDispatchForm({ fromLocation: showDispatchModal.location, toLocation: '', quantity: 1, operator: '', remark: '' });
   };
@@ -504,7 +528,10 @@ export default function Materials() {
                 <input
                   type="number"
                   value={borrowForm.quantity}
-                  onChange={(e) => setBorrowForm({ ...borrowForm, quantity: Number(e.target.value) })}
+                  onChange={(e) => {
+                    const val = Math.min(Math.max(Number(e.target.value), 1), showBorrowModal.quantity);
+                    setBorrowForm({ ...borrowForm, quantity: val });
+                  }}
                   min={1}
                   max={showBorrowModal.quantity}
                   className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -565,7 +592,10 @@ export default function Materials() {
                 <input
                   type="number"
                   value={returnForm.quantity}
-                  onChange={(e) => setReturnForm({ ...returnForm, quantity: Number(e.target.value) })}
+                  onChange={(e) => {
+                    const val = Math.max(Number(e.target.value), 1);
+                    setReturnForm({ ...returnForm, quantity: val });
+                  }}
                   min={1}
                   className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -646,7 +676,10 @@ export default function Materials() {
                 <input
                   type="number"
                   value={dispatchForm.quantity}
-                  onChange={(e) => setDispatchForm({ ...dispatchForm, quantity: Number(e.target.value) })}
+                  onChange={(e) => {
+                    const val = Math.min(Math.max(Number(e.target.value), 1), showDispatchModal.quantity);
+                    setDispatchForm({ ...dispatchForm, quantity: val });
+                  }}
                   min={1}
                   max={showDispatchModal.quantity}
                   className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"

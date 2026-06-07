@@ -8,6 +8,7 @@ import Patrol from "@/pages/Patrol";
 import Contact from "@/pages/Contact";
 import Materials from "@/pages/Materials";
 import Review from "@/pages/Review";
+import Handover from "@/pages/Handover";
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/materials" element={<Materials />} />
           <Route path="/review" element={<Review />} />
+          <Route path="/handover" element={<Handover />} />
         </Route>
       </Routes>
     </Router>

@@ -8,6 +8,7 @@ import {
   Phone,
   Package,
   FileBarChart,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -20,6 +21,7 @@ const menuItems = [
   { path: '/contact', label: '联动联络', icon: Phone },
   { path: '/materials', label: '物资管理', icon: Package },
   { path: '/review', label: '复盘分析', icon: FileBarChart },
+  { path: '/handover', label: '值班交接', icon: ArrowLeftRight },
 ];
 
 export function Sidebar() {

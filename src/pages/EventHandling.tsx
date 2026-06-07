@@ -20,6 +20,8 @@ import {
   Lightbulb,
   ArrowRight,
   FileBarChart,
+  ThumbsUp,
+  ThumbsDown,
 } from 'lucide-react';
 import { useAppStore } from '@/store';
 import { mockDevices, mockContacts } from '@/data/mockData';
@@ -54,6 +56,7 @@ const eventStatusLabels: Record<string, string> = {
   processing: '处理中',
   completed: '已完成',
   closed: '已关闭',
+  rejected: '已退回',
 };
 
 const eventStatusColors: Record<string, string> = {
@@ -61,6 +64,7 @@ const eventStatusColors: Record<string, string> = {
   processing: 'bg-blue-100 text-blue-700',
   completed: 'bg-green-100 text-green-700',
   closed: 'bg-gray-100 text-gray-700',
+  rejected: 'bg-red-100 text-red-700',
 };
 
 const actionLabels: Record<string, string> = {
@@ -72,6 +76,8 @@ const actionLabels: Record<string, string> = {
   notify_contact: '通知联络',
   borrow_material: '物资领用',
   complete: '事件完成',
+  review_approve: '复核通过',
+  review_reject: '复核退回',
 };
 
 const actionColors: Record<string, string> = {
@@ -83,6 +89,8 @@ const actionColors: Record<string, string> = {
   notify_contact: 'bg-pink-500',
   borrow_material: 'bg-yellow-500',
   complete: 'bg-emerald-500',
+  review_approve: 'bg-teal-500',
+  review_reject: 'bg-rose-500',
 };
 
 const departmentLabels: Record<Department, string> = {
@@ -118,6 +126,7 @@ export default function EventHandling() {
     borrowEventMaterial,
     setHighlightedDeviceId,
     matchDeviceByLocation,
+    reviewEvent,
   } = useAppStore();
 
   useEffect(() => {
@@ -183,6 +192,12 @@ export default function EventHandling() {
     remark: '',
   });
 
+  const [showReviewModal, setShowReviewModal] = useState<string | null>(null);
+  const [reviewForm, setReviewForm] = useState({
+    action: 'approve' as 'approve' | 'reject',
+    remark: '',
+  });
+
   const filteredEvents = events.filter((e) => {
     if (filterStatus !== 'all' && e.status !== filterStatus) return false;
     if (filterType !== 'all' && e.type !== filterType) return false;
@@ -235,13 +250,23 @@ export default function EventHandling() {
     if (!materialForm.materialId) return;
     const material = materials.find((m) => m.id === materialForm.materialId);
     if (!material) return;
-    if (materialForm.quantity > material.quantity) {
-      alert(`库存不足！当前可用数量：${material.quantity}`);
+    if (materialForm.quantity <= 0 || materialForm.quantity > material.quantity) {
+      alert(`领用数量不合法！当前可用数量：${material.quantity}`);
       return;
     }
-    borrowEventMaterial(eventId, material.id, material.name, materialForm.quantity, '值班员', materialForm.remark);
+    const success = borrowEventMaterial(eventId, material.id, material.name, materialForm.quantity, '值班员', materialForm.remark);
+    if (!success) {
+      alert('领用失败，请检查库存数量');
+      return;
+    }
     setShowMaterialModal(null);
     setMaterialForm({ materialId: '', quantity: 1, remark: '' });
+  };
+
+  const handleReview = (eventId: string) => {
+    reviewEvent(eventId, reviewForm.action, '值班站长', reviewForm.remark);
+    setShowReviewModal(null);
+    setReviewForm({ action: 'approve', remark: '' });
   };
 
   const handleJumpToMap = (deviceId?: string) => {
@@ -400,7 +425,12 @@ export default function EventHandling() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleJumpToMap(event.deviceId);
+                          if (event.deviceId) {
+                            handleJumpToMap(event.deviceId);
+                          } else {
+                            matchDeviceByLocation(event.location);
+                            handleJumpToMap();
+                          }
                         }}
                         className="hover:text-blue-600 hover:underline"
                       >
@@ -446,13 +476,25 @@ export default function EventHandling() {
                       </div>
                       <div className="flex items-center gap-2">
                         {event.status === 'completed' && (
-                          <button
-                            onClick={() => navigate('/review', { state: { highlightEventId: event.id } })}
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs bg-purple-50 text-purple-600 rounded hover:bg-purple-100 transition-colors"
-                          >
-                            <FileBarChart size={12} />
-                            查看复盘
-                          </button>
+                          <>
+                            <button
+                              onClick={() => navigate('/review', { state: { highlightEventId: event.id } })}
+                              className="flex items-center gap-1 px-3 py-1.5 text-xs bg-purple-50 text-purple-600 rounded hover:bg-purple-100 transition-colors"
+                            >
+                              <FileBarChart size={12} />
+                              查看复盘
+                            </button>
+                            <button
+                              onClick={() => {
+                                setShowReviewModal(event.id);
+                                setReviewForm({ action: 'approve', remark: '' });
+                              }}
+                              className="flex items-center gap-1 px-3 py-1.5 text-xs bg-teal-50 text-teal-600 rounded hover:bg-teal-100 transition-colors"
+                            >
+                              <ThumbsUp size={12} />
+                              复核
+                            </button>
+                          </>
                         )}
                         {event.status === 'pending' && (
                           <button
@@ -471,6 +513,16 @@ export default function EventHandling() {
                             <CheckCircle size={12} />
                             完成处置
                           </button>
+                        )}
+                        {event.reviewStatus === 'rejected' && (
+                          <span className="px-2 py-1 text-xs bg-red-50 text-red-600 rounded">
+                            已退回
+                          </span>
+                        )}
+                        {event.reviewStatus === 'approved' && (
+                          <span className="px-2 py-1 text-xs bg-green-50 text-green-600 rounded">
+                            复核通过
+                          </span>
                         )}
                       </div>
                     </div>
@@ -968,7 +1020,7 @@ export default function EventHandling() {
                   type="number"
                   value={materialForm.quantity}
                   onChange={(e) => {
-                    const val = Math.min(Number(e.target.value), maxQuantity);
+                    const val = Math.min(Math.max(Number(e.target.value), 1), maxQuantity);
                     setMaterialForm({ ...materialForm, quantity: val });
                   }}
                   min={1}
@@ -997,6 +1049,76 @@ export default function EventHandling() {
                 className="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 disabled:opacity-50"
               >
                 确认领用
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showReviewModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl w-[450px]">
+            <div className="p-4 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-semibold text-slate-800">处置复核</h3>
+              <button onClick={() => setShowReviewModal(null)} className="text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">复核结果</label>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setReviewForm({ ...reviewForm, action: 'approve' })}
+                    className={`flex-1 py-2 rounded border-2 flex items-center justify-center gap-2 transition-colors ${
+                      reviewForm.action === 'approve'
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    <ThumbsUp size={16} />
+                    复核通过
+                  </button>
+                  <button
+                    onClick={() => setReviewForm({ ...reviewForm, action: 'reject' })}
+                    className={`flex-1 py-2 rounded border-2 flex items-center justify-center gap-2 transition-colors ${
+                      reviewForm.action === 'reject'
+                        ? 'border-red-500 bg-red-50 text-red-700'
+                        : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                    }`}
+                  >
+                    <ThumbsDown size={16} />
+                    退回补充
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  {reviewForm.action === 'reject' ? '退回原因 *' : '复核说明（可选）'}
+                </label>
+                <textarea
+                  value={reviewForm.remark}
+                  onChange={(e) => setReviewForm({ ...reviewForm, remark: e.target.value })}
+                  rows={3}
+                  placeholder={reviewForm.action === 'reject' ? '请填写退回原因，要求补充的内容...' : '请输入复核说明...'}
+                  className="w-full px-3 py-2 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                />
+              </div>
+            </div>
+            <div className="p-4 border-t border-slate-200 flex justify-end gap-3">
+              <button onClick={() => setShowReviewModal(null)} className="px-4 py-2 text-slate-600 hover:text-slate-800">
+                取消
+              </button>
+              <button
+                onClick={() => handleReview(showReviewModal)}
+                disabled={reviewForm.action === 'reject' && !reviewForm.remark}
+                className={`px-6 py-2 text-white rounded transition-colors disabled:opacity-50 ${
+                  reviewForm.action === 'approve'
+                    ? 'bg-green-600 hover:bg-green-700'
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {reviewForm.action === 'approve' ? '确认通过' : '确认退回'}
               </button>
             </div>
           </div>

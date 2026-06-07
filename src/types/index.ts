@@ -1,6 +1,6 @@
 export type EventType = 'crowd' | 'lost_item' | 'dispute' | 'suspicious' | 'injury' | 'other';
 export type EventLevel = 'low' | 'medium' | 'high' | 'emergency';
-export type EventStatus = 'pending' | 'processing' | 'completed' | 'closed';
+export type EventStatus = 'pending' | 'processing' | 'completed' | 'closed' | 'rejected';
 
 export interface Event {
   id: string;
@@ -17,6 +17,10 @@ export interface Event {
   assignee?: string;
   result?: string;
   reviewSuggestion?: string;
+  reviewStatus?: 'pending' | 'approved' | 'rejected';
+  reviewRemark?: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
 }
 
 export type EventLogAction = 
@@ -27,7 +31,9 @@ export type EventLogAction =
   | 'add_remark'
   | 'notify_contact'
   | 'borrow_material'
-  | 'complete';
+  | 'complete'
+  | 'review_approve'
+  | 'review_reject';
 
 export interface EventLog {
   id: string;
@@ -189,4 +195,37 @@ export interface ReviewItem {
   duration: number;
   nodes: { name: string; duration: number; responsible: string; timestamp: string }[];
   improvements: { id: string; content: string; status: 'pending' | 'in_progress' | 'completed' }[];
+}
+
+export interface HandoverEventSnapshot {
+  id: string;
+  type: EventType;
+  level: EventLevel;
+  location: string;
+  status: EventStatus;
+  description: string;
+}
+
+export interface HandoverMaterialSnapshot {
+  id: string;
+  name: string;
+  quantity: number;
+  location: string;
+  status: string;
+}
+
+export interface HandoverRecord {
+  id: string;
+  shift: 'morning' | 'afternoon' | 'night';
+  date: string;
+  outgoingOfficer: string;
+  incomingOfficer: string;
+  handoverTime: string;
+  remark: string;
+  pendingEvents: HandoverEventSnapshot[];
+  pendingContacts: { id: string; eventId: string; contactName: string; department: string; notifyTime: string }[];
+  activeMaterials: HandoverMaterialSnapshot[];
+  confirmed: boolean;
+  confirmedAt?: string;
+  confirmedBy?: string;
 }
