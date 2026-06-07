@@ -35,8 +35,10 @@ export interface PassengerData {
 export interface WarningThreshold {
   id: string;
   area: string;
+  areaName: string;
   yellowThreshold: number;
   redThreshold: number;
+  currentCount: number;
 }
 
 export type DeviceType = 'gate' | 'escalator' | 'entrance' | 'security' | 'camera';
@@ -67,7 +69,7 @@ export interface Material {
 export interface MaterialLog {
   id: string;
   materialId: string;
-  type: 'borrow' | 'return' | 'maintenance';
+  type: 'borrow' | 'return' | 'maintenance' | 'dispatch';
   quantity: number;
   operator: string;
   timestamp: string;

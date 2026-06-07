@@ -169,12 +169,12 @@ export const mockAlerts: Alert[] = [
 ];
 
 export const mockWarningThresholds: WarningThreshold[] = [
-  { id: 'wt1', area: '站厅', yellowThreshold: 400, redThreshold: 600 },
-  { id: 'wt2', area: '站台1', yellowThreshold: 300, redThreshold: 450 },
-  { id: 'wt3', area: '站台2', yellowThreshold: 300, redThreshold: 450 },
-  { id: 'wt4', area: '换乘通道', yellowThreshold: 200, redThreshold: 350 },
-  { id: 'wt5', area: 'A出入口', yellowThreshold: 150, redThreshold: 250 },
-  { id: 'wt6', area: 'B出入口', yellowThreshold: 150, redThreshold: 250 },
+  { id: 'wt1', area: '站厅', areaName: '站厅区域', yellowThreshold: 400, redThreshold: 600, currentCount: 320 },
+  { id: 'wt2', area: '站台1', areaName: '1号站台', yellowThreshold: 300, redThreshold: 450, currentCount: 280 },
+  { id: 'wt3', area: '站台2', areaName: '2号站台', yellowThreshold: 300, redThreshold: 450, currentCount: 350 },
+  { id: 'wt4', area: '换乘通道', areaName: '换乘通道', yellowThreshold: 200, redThreshold: 350, currentCount: 180 },
+  { id: 'wt5', area: 'A出入口', areaName: 'A出入口', yellowThreshold: 150, redThreshold: 250, currentCount: 90 },
+  { id: 'wt6', area: 'B出入口', areaName: 'B出入口', yellowThreshold: 150, redThreshold: 250, currentCount: 260 },
 ];
 
 export const mockBroadcastTemplates: BroadcastTemplate[] = [
